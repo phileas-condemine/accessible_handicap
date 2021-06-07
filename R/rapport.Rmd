@@ -1,40 +1,68 @@
 ---
-title: "Accessibilité aux personnes en handicapées"
+title: "Accessibilité aux personnes handicapées"
 author: "Philéas Condemine"
-date: "05/06/2021"
+date: "`r Sys.Date()`"
 output: ioslides_presentation
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = FALSE,message=FALSE, warning=FALSE)
 ```
 
-```{r packages, message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
+```{r packages, include=FALSE, paged.print=FALSE}
 library(data.table)
 library(plotly)
+library(dplyr)
+library(heatmaply)
 ```
 
-```{r data-loading, message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
+```{r functions,include=FALSE, paged.print=FALSE}
+source("utils/custom_funs.R",local = T,encoding = "UTF-8")
+source("utils/feature_eng.R",local = T,encoding = "UTF-8")
+```
+
+```{r data-loading, include=FALSE, paged.print=FALSE}
 handicap = fread("../data/data-es.csv",encoding = "UTF-8")
 ```
 
-```{r functions, message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
-count_and_plot = function(data,var){
-  stats = data[,.N,by=var]
-  setnames(stats,var,"x")
-  setorder(stats,-N)
-  stats[,x:=factor(x)]
-  stats[,x:=forcats::fct_inorder(x)]
-  plot_ly(data=stats,x=~x,y=~N)
-}
-show_pct = function(x)paste0(round(100*x,1),"%")
+```{r featuring, include=FALSE, paged.print=FALSE}
+inplace_recode_features(handicap)
 
 ```
+
+```{r vars_selection, include=FALSE, paged.print=FALSE}
+# names(handicap)
+# Revue manuelle des variables disponibles. Principalement des variables catégorielles ou binaires. Certaines multimodales sont mal codées (pb d'ordre). Les variables quanti sont spécifiques aux disciplines ou à la jauge (gradins, nb locaux)
+source("utils/vars_categ_manuelle.R",local = T,encoding = "UTF-8")
+
+remaining = handicap[, -c(
+  IDs,
+  metadata_survey,
+  Geo,
+  data_perso,
+  Indic_Access,
+  weird,
+  vars_useless,
+  redondant,
+  a_tester,
+  a_tester_recodee,
+  a_recoder,
+  dates_a_tester,
+  specifique_stade,
+  specifique_ski,
+  specifique_athletisme,
+  specifique_aquatique
+), with = F]
+# dput(names(remaining))
+# sapply(remaining,uniqueN)
+```
+
+
 
 
 <style type="text/css">
 .lang-small_size {  
-  font-size: 12px;
+font-size: 12px;
 }
 </style>
 
@@ -42,26 +70,56 @@ show_pct = function(x)paste0(round(100*x,1),"%")
 
 ## Accessibilité aux personnes en situation de handicap
 
+Une étude critique du respect du cadre juridique d'accessibilité aux handicapés
+
 Scorer et classifier les établissements pouvant accueillir les personnes en situations de handicap
 
+## Documentation
+
+[A propos des données](https://equipements.sports.gouv.fr/pages/plus-dinfos/)
+
+[Le cadre juridique](https://www.sports.gouv.fr/pratiques-sportives/equipements-et-sites/reglementation/Accessibilite-des-equipements-sportifs)
+
+**"Les ERP doivent être [...] accessibles à tous, quel que soit le type de handicap notamment physique, sensoriel, cognitif, mental ou psychique."**
+
+## Revue de littérature, quasi-nullité d'exploitations RES + Handicap
+
+- [**Analyse par département sans référence à l'accessibilité**] [Atlas francilien du recensement des équipements sportifs](https://ile-de-france.drjscs.gouv.fr/spip.php?article1100)
+- [**3 occurrences "handicap" en aparté - idée : focus sur grand-jeu, salles polyvalentes & gymnases**] [Les équipements sportifs du Grand Est](https://www.insee.fr/fr/statistiques/3197322)
+- [**Contexte rural - uniquement problématique du temps d'accès**] [Dossier Pays du Lunévillois](https://www.insee.fr/fr/statistiques/3195833)
+- [**Accessibilité aux handicapés 58% ZUS vs 54% !ZUS**] [L’offre en Zones urbaines sensibles](https://www.sports.gouv.fr/IMG/pdf/etudeeszus_synthese_oct2014.pdf)
+
+[Bibliographie complète du RES](https://www.sports.gouv.fr/spip.php?page=imprimer&id_article=15715)
+
+[Un seul document sur 81 qui mentionne "handicap" dans le titre](https://ile-de-france.drjscs.gouv.fr/sites/ile-de-france.drjscs.gouv.fr/IMG/pdf/SynthesePiscines11janvier12-2.pdf)
 
 ## Hypothèses
 
 - Il ne s'agit pas d'un projet juridique, l'objectif n'est donc pas d'étudier le cadre juridique des normes d'accessibilité en France.
 - On se propose pas la suite de comparer les établissements en termes d'accessibilité afin de permettre d'identifier les établissements défaillants.
 
-## Diversité des établissements 
+## Avertissement - Qualité des données
 
-```{r distr familles, message=FALSE, warning=FALSE, paged.print=FALSE}
+Faute de temps, on ne peut pas analyser toutes les variables et réaliser une étude de qualité des données. 
+
+Les résultats pourraient changer si des erreurs étaient identifiées et corrigées dans les données. 
+
+Exemple : variable "Etat de la fiche d'enquête", on conserve toutes les lignes yc non-validées.
+
+## Distribution des établissements par famille d'équipement sportif
+
+```{r distr familles, paged.print=FALSE}
 # handicap[,.N,by=.(`Type d'équipement sportif`)]
-count_and_plot(handicap,"Famille d'équipement sportif")%>%plotly::layout(title="Distribution des établissements par famille d'équipement sportif")
+ax <- list(
+  title = "",
+  showticklabels = FALSE,
+  showgrid = FALSE
+)
+count_and_plot(handicap,"Famille d'équipement sportif")%>%plotly::layout(xaxis = ax, yaxis = ax)
 ```
+## Variables qualifiant l'accessibilité
 
-## Indicateurs d'accessibilité
-
-On se concentre sur le premier indicateur (99% !NA & 65% OK).
-
-```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+```{r  paged.print=FALSE}
 nm = names(handicap)
 # grep("access",nm,value=T,ignore.case = T)
 # grep("handicap",nm,value=T,ignore.case = T)
@@ -79,20 +137,136 @@ stats_var_handicap_access = handicap[, c(.(stat = c("not_na","avg","min","max","
 
 DT::datatable(stats_var_handicap_access, 
               extensions = 'FixedColumns',
-  options = list(
-    dom = 't',
-    scrollX = TRUE,
-    fixedColumns = TRUE
-  ),
-  rownames = F
-  )
+              options = list(
+                dom = 't',
+                scrollX = TRUE,
+                fixedColumns = TRUE
+              ),
+              rownames = F
+)
 
 ```
+## Choix des critères d'accessibilité
+
+On s'intéresse en priorité aux critères bien renseignés (taux de valeurs manquantes faible).
+
+On peut distinguer le sport comme pratique ou comme spectacle. 
+
+**En matière de santé publique, l'accès à la pratique prévaut.**
+
+Par ailleurs la proportion des établissements "accessibles" dans l'ensemble est un élément important.
+
+On distingue un **écart colossal d'accessibilité aux handicapés moteurs (55%) vs sensoriels (3%)**
+
+On retrouve cette séparation des handicaps sensoriels vs moteurs dans la CAH des corrélations.
+
+## Corrélation entre les critères d'accessibilité - séparation nette moteur / sensoriel 
+
+```{r}
+vars_handicap_bin = melt(stats_var_handicap_access,id.vars = "stat")[stat=="nb_mod" & value <= 3]$variable
+vars_handicap_bin = as.character(vars_handicap_bin)
+vars_handicap_bin = setdiff(vars_handicap_bin,c("Accessibilité juridique"))
+
+data_for_corr = data.frame(handicap[,vars_handicap_bin,with=F])
+corr_mat = cor(data_for_corr,use = "pairwise.complete.obs")
+heatmaply_cor(corr_mat,showticklabels = F)
+```
+
+
+
+## Choix de la problématique
+
+Les écarts d'accessibilité à la pratique sportive aux handicapés moteurs vs sensoriels
+
+- Accessibilité aux personnes à mobilité réduite à l'aire de jeu
+- Accessibilité aux personnes en situation de handicap sensoriel à l'aire de jeu
+
+## Les handisports (1/2)
+
+```{r}
+knitr::include_graphics("../doc/Pages-de-livret-de-lencadrant_Page_1.jpg")
+```
+
+
+
+## Les handisports (2/2)
+
+```{r}
+knitr::include_graphics("../doc/Pages-de-livret-de-lencadrant_Page_2.jpg")
+```
+
 
 
 ## Accessibilité par famille d'établissement
 
-```{r}
-setnames(handicap,"Accessibilité de l'installation en faveur des personnes en situation de handicap","target")
+Des taux d'accessibilités très variables d'une famille d'équipement à l'autre.
+
+```{r include=FALSE}
+setnames(handicap,"Accessibilité aux personnes à mobilité réduite à l'aire de jeu","acces_aire_jeu_hm")
+setnames(handicap,"Accessibilité aux personnes en situation de handicap sensoriel à l'aire de jeu","acces_aire_jeu_hs")
 ```
+
+```{r}
+
+var2 = "Type d'équipement sportif"
+var = "Famille d'équipement sportif"
+stats = handicap[, .(.N, 
+                     tx_access_hm = mean(acces_aire_jeu_hm, na.rm = T),
+                     tx_access_hs = mean(acces_aire_jeu_hs, na.rm = T)
+                     ), by = var]
+stats[,prop := N/sum(N)]
+setnames(stats,var,"x")
+setorder(stats,-N)
+stats[,x:=factor(x)]
+stats[,x:=forcats::fct_inorder(x)]
+plot_ly(data=stats,x=~x,y=~prop,type = "bar",name = "Distribution")%>%
+  add_lines(y=~tx_access_hm,name="OK H. Moteur")%>%
+  add_lines(y=~tx_access_hs,name="OK H. Sensoriel")%>%
+  layout(hovermode = "x unified")
+
+```
+## Accessibilité par type d'établissement
+
+Des taux d'accessibilités très variables d'un type d'équipement à l'autre.
+
+```{r}
+
+var2 = "Type d'équipement sportif"
+stats = handicap[, .(.N, 
+                     tx_access_hm = mean(acces_aire_jeu_hm, na.rm = T),
+                     tx_access_hs = mean(acces_aire_jeu_hs, na.rm = T)
+                     ), by = var2]
+stats[,prop := N/sum(N)]
+setnames(stats,var2,"x")
+setorder(stats,-N)
+stats[,x:=factor(x)]
+stats[,x:=forcats::fct_inorder(x)]
+plot_ly(data=stats,x=~x,y=~prop,type = "bar",name = "Distribution")%>%
+  add_lines(y=~tx_access_hm,name="OK H. Moteur")%>%
+  add_lines(y=~tx_access_hs,name="OK H. Sensoriel")%>%
+  layout(hovermode = "x unified")
+
+```
+
+## Des variables spécifiques par type d'établissement
+
+Athlétisme, ski, natation, activités aquatiques & aériennes.
+
+```{r}
+ax <- list(
+  # title = "",
+  showticklabels = FALSE,
+  showgrid = FALSE
+)
+var = "Famille d'équipement sportif"
+stats_na_by_group = handicap %>% 
+  group_by(`Famille d'équipement sportif`) %>% 
+  summarise_all(~mean(!is.na(.))) %>% 
+  setDT %>%
+  melt(id.vars=var,value.name = "not_na")
+
+plot_ly(data = stats_na_by_group,type="heatmap",x=~`Famille d'équipement sportif`,y=~variable,z=~not_na)%>%layout(xaxis = ax, yaxis = ax)
+```
+
+
 

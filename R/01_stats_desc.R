@@ -9,6 +9,11 @@ grep("access",nm,value=T,ignore.case = T)
 grep("handicap",nm,value=T,ignore.case = T)
 grep("pratique",nm,value=T,ignore.case = T)
 
+handicap[,.N,by="Type d'équipement sportif"][order(N,decreasing = T)]
+handicap[,.N,by="Famille d'équipement sportif"][order(N,decreasing = T)]
+
+handicap[,.N,by="Accessibilité de l'installation en transport en commun des différents mode"]#
+
 handicap[,.N,by="Statut de la fiche d'enquête"]#cste = TRUE
 handicap[,.N,by="Etat de la fiche d'enquête"]#toutes les lignes ne sont pas validées, on l'assume faute de temps pour DQA. On pourrait vérifier les biais avec une classification de cette variable.
 handicap[,.N,by="Installation gardiennée"]#T/F/NA
@@ -51,6 +56,7 @@ handicap[,.N,by= "Inscription de l'équipement suite à une déclaration"]
 handicap[,.N,by= "Accessibilité juridique"]
 handicap[,.N,by= "Equipement inscrit au PDESI / PDIPR"]#T/F/NA info sur les sites de randonnée & itinéraires : sport nature, ski, act aérienne, aquatique, nautique, cyclisme, mécanique ou équeste.
 handicap[,.N,by= "Atlas"]
+handicap[,.N,by= "Emprise foncière de l'installation"]
 
 one_var = "Types de locaux complémentaires"
 

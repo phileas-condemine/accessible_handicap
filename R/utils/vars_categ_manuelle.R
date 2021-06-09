@@ -87,8 +87,6 @@ a_tester = c(
   "Accessibilité de l'installation en transport en commun",
   "Installation particulière",
   "Emprise foncière de l'installation",
-  "Type de particularité de l'installation",
-  "Accessibilité de l'installation en transport en commun des différents mode",
   "Type de l'enquête",
   "Type d'équipement sportif",
   "Famille d'équipement sportif",
@@ -160,7 +158,15 @@ a_tester_recodee = c(
   "reception",
   "infirmerie",
   "centre_medicosportif",
-  "travaux_mise_en_conformite"
+  "travaux_mise_en_conformite",
+  "access_bus",
+  "access_metro",
+  "access_tramway",
+  "access_train",
+  "access_bateau",
+  "etab_scolaire",
+  "etab_militaire",
+  "etab_prison"
 )
 
 
@@ -241,5 +247,8 @@ redondant = c("Code du type d'équipement sportif",
               "catégorie ERP de l'établissement",#recodé en factor dans taille_erp
               "Types d'aménagements d'information",#recodé 3 modalités possibles chrono, sono, tableau
               "Types de locaux complémentaires", #partiellement recodé
-              "Motifs des derniers gros travaux"  #partiellement recodé
+              "Motifs des derniers gros travaux",  #partiellement recodé
+              "Type de particularité de l'installation",
+              "Accessibilité de l'installation en transport en commun des différents mode"  #partiellement recodé
+              
 )

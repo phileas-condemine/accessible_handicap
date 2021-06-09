@@ -100,11 +100,13 @@ Scorer et classifier les établissements pouvant accueillir les personnes en sit
 
 ## Avertissement - Qualité des données
 
-Faute de temps, on ne peut pas analyser toutes les variables et réaliser une étude de qualité des données. 
+Tout projet de data-science devrait commencer par une **analyse de la qualité des données**.
 
-Les résultats pourraient changer si des erreurs étaient identifiées et corrigées dans les données. 
-
-Exemple : variable "Etat de la fiche d'enquête", on conserve toutes les lignes yc non-validées.
+- Données mal codées : 
+  - Ordre permuté dans les listes (Type d'utilisation, Types de locaux complémentaires...)
+  - Espaces en trop (Période de mise en service : 1975-1984 vs 1975 - 1984)
+  - Variable numérique (Emprise foncière de l'installation : des espaces, des points, des virgules, des m², m2, hectares, ha...)
+- Données incertaines : variable "Etat de la fiche d'enquête", modalité non-validée.
 
 ## Distribution des établissements par famille d'équipement sportif
 
@@ -195,6 +197,15 @@ knitr::include_graphics("../doc/Pages-de-livret-de-lencadrant_Page_1.jpg")
 knitr::include_graphics("../doc/Pages-de-livret-de-lencadrant_Page_2.jpg")
 ```
 
+## Des activités adaptées aux handicapés moteurs ou sensoriels
+
+- Ski
+- Natation
+- Canoë
+- Tir
+- Danse
+- Musculation
+- Athlétisme
 
 
 ## Accessibilité par famille d'établissement
@@ -213,7 +224,7 @@ var = "Famille d'équipement sportif"
 stats = handicap[, .(.N, 
                      tx_access_hm = mean(acces_aire_jeu_hm, na.rm = T),
                      tx_access_hs = mean(acces_aire_jeu_hs, na.rm = T)
-                     ), by = var]
+), by = var]
 stats[,prop := N/sum(N)]
 setnames(stats,var,"x")
 setorder(stats,-N)
@@ -225,6 +236,32 @@ plot_ly(data=stats,x=~x,y=~prop,type = "bar",name = "Distribution")%>%
   layout(hovermode = "x unified")
 
 ```
+
+
+```{r eval=FALSE, include=FALSE}
+pick_famille = c("Terrain de grands jeux","Plateau EPS","Salle multisports","Salle non spécialisée","Equipement équestre","Salle ou terrain spécialisé","Equipement d'activités de forme et de santé")
+
+var2 = "Type d'équipement sportif"
+var = "Famille d'équipement sportif"
+
+for (one_famille in pick_famille){
+  stats = handicap[`Famille d'équipement sportif`  == one_famille, .(.N, 
+                       tx_access_hm = mean(acces_aire_jeu_hm, na.rm = T),
+                       tx_access_hs = mean(acces_aire_jeu_hs, na.rm = T)
+  ), by = var2]
+  stats[,prop := N/sum(N)]
+  setnames(stats,var2,"x")
+  setorder(stats,-N)
+  stats[,x:=factor(x)]
+  stats[,x:=forcats::fct_inorder(x)]
+  plot_ly(data=stats,x=~x,y=~prop,type = "bar",name = "Distribution")%>%
+    add_lines(y=~tx_access_hm,name="OK H. Moteur")%>%
+    add_lines(y=~tx_access_hs,name="OK H. Sensoriel")%>%
+    layout(hovermode = "x unified",title=one_famille)
+}
+```
+
+
 ## Accessibilité par type d'établissement
 
 Des taux d'accessibilités très variables d'un type d'équipement à l'autre.
@@ -235,7 +272,7 @@ var2 = "Type d'équipement sportif"
 stats = handicap[, .(.N, 
                      tx_access_hm = mean(acces_aire_jeu_hm, na.rm = T),
                      tx_access_hs = mean(acces_aire_jeu_hs, na.rm = T)
-                     ), by = var2]
+), by = var2]
 stats[,prop := N/sum(N)]
 setnames(stats,var2,"x")
 setorder(stats,-N)
@@ -250,7 +287,7 @@ plot_ly(data=stats,x=~x,y=~prop,type = "bar",name = "Distribution")%>%
 
 ## Des variables spécifiques par type d'établissement
 
-Athlétisme, ski, natation, activités aquatiques & aériennes.
+Athlétisme, ski, natation, activités aquatiques ~~& aériennes~~.
 
 ```{r}
 ax <- list(
@@ -268,5 +305,14 @@ stats_na_by_group = handicap %>%
 plot_ly(data = stats_na_by_group,type="heatmap",x=~`Famille d'équipement sportif`,y=~variable,z=~not_na)%>%layout(xaxis = ax, yaxis = ax)
 ```
 
+## Une amélioration progressive du respect des normes d'accessibilité
+
+Mesuré avec un modèle logistique sur 9530 équipements d'athlétisme.
+
+```{r}
+coeffs = readRDS("../data/athletisme_effet_annee_construction_OK_PRATIQUE_HM.rds")
+ax <- list(title = "", showticklabels = FALSE, showgrid = FALSE)
+plot_margin(coeffs = coeffs,pattern = "^Periode_de_mise_en_service",.01)%>%layout(xaxis=ax)
+```
 
 

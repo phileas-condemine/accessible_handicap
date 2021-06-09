@@ -1,3 +1,14 @@
+fix_to_numeric = function(handicap,var,verbose=T){
+  setnames(handicap,var,"var")
+  handicap[,var:=gsub(" ","",var)]
+  if(verbose){
+    print(unique(handicap[!is.na(var) & is.na(as.numeric(var))][["var"]])) # le champ devrait toujours être numérique et exprimé dans la même unité. Ici on a des mélanges de m² et ha
+  }
+  handicap[,var:=as.numeric(var)]
+  setnames(handicap,"var",var)
+  invisible(handicap)
+  
+}
 
 inplace_recode_features = function(handicap){
   find_mods("Type d'utilisation",handicap)
@@ -29,9 +40,35 @@ inplace_recode_features = function(handicap){
   handicap[,.N,by=infirmerie]
   handicap[,.N,by=centre_medicosportif]
   
+  
+  find_mods("Accessibilité de l'installation en transport en commun des différents mode",handicap)
+  handicap[,access_bus:=grepl("Bus",`Accessibilité de l'installation en transport en commun des différents mode`)]
+  handicap[,access_metro:=grepl("Métro",`Accessibilité de l'installation en transport en commun des différents mode`)]
+  handicap[,access_tramway:=grepl("Tramway",`Accessibilité de l'installation en transport en commun des différents mode`)]
+  handicap[,access_train:=grepl("Train",`Accessibilité de l'installation en transport en commun des différents mode`)]
+  handicap[,access_bateau:=grepl("Bateau",`Accessibilité de l'installation en transport en commun des différents mode`)]
+  
+  find_mods("Type de particularité de l'installation",handicap)
+  handicap[,etab_scolaire:=grepl("scolaire",`Type de particularité de l'installation`)]
+  handicap[,etab_militaire:=grepl("militaire",`Type de particularité de l'installation`)]
+  handicap[,etab_prison:=grepl("pénitentiaire",`Type de particularité de l'installation`)]
+  
+  
   handicap[,travaux_mise_en_conformite:=grepl("Mise en conformité",`Motifs des derniers gros travaux`)]
   handicap[,.N,by=travaux_mise_en_conformite]
   
   handicap[,taille_erp := factor(`catégorie ERP de l'établissement`)]
+  
+  fix_to_numeric(handicap,"Emprise foncière de l'installation")
+  fix_to_numeric(handicap,"Surface de l'aire d'évolution")
+  fix_to_numeric(handicap,"Débit horaire maximal")
+  fix_to_numeric(handicap,"Hauteur de l'aire d'évolution")
+  fix_to_numeric(handicap,"Largeur de l'aire d'évolution")
+  
+  handicap[,`Période de mise en service`:=gsub(" ","",`Période de mise en service`)]#on a à la fois 1945-1964 & 1945 - 1964
+  
+  
   invisible(handicap)
 }
+
+

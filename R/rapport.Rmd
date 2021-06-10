@@ -2,7 +2,10 @@
 title: "Accessibilité aux personnes handicapées"
 author: "Philéas Condemine"
 date: "`r Sys.Date()`"
-output: ioslides_presentation
+output: 
+  ioslides_presentation:
+    widescreen: true
+    smaller: true
 ---
 
 ```{r setup, include=FALSE}
@@ -14,6 +17,9 @@ library(data.table)
 library(plotly)
 library(dplyr)
 library(heatmaply)
+library(xgboostExplainer)
+library(iml)
+library(rpart.plot)
 ```
 
 ```{r functions,include=FALSE, paged.print=FALSE}
@@ -28,6 +34,13 @@ handicap = fread("../data/data-es.csv",encoding = "UTF-8")
 ```{r featuring, include=FALSE, paged.print=FALSE}
 inplace_recode_features(handicap)
 
+```
+
+
+```{r export pour carto, eval=FALSE, include=FALSE, paged.print=FALSE}
+data_carto <- fix_names_encoding(handicap)
+data_carto <- data_carto[,.(coordonnees,acces_aire_jeu_hm,acces_aire_jeu_hs,Email_de_la_personne_ressource,Nom_de_l.equipement_sportif,Nom_de_l.installation_sportive,Nom_de_la_personne_ressource,DEP,Famille_d.equipement_sportif,Type_d.equipement_sportif)]
+fst::write_fst(data_carto,"../../accessible_handicap_app/data/handicap_carto.fst")
 ```
 
 ```{r vars_selection, include=FALSE, paged.print=FALSE}
@@ -73,6 +86,15 @@ font-size: 12px;
 Une étude critique du respect du cadre juridique d'accessibilité aux handicapés
 
 Scorer et classifier les établissements pouvant accueillir les personnes en situations de handicap
+
+## Livrables
+
+- Scripts de nettoyage des données (fonctions dédiées)
+- Rapport d'étude
+- Algorithmes de classification de l'accessibilité des établissements
+- Interprétation des résultats des algorithmes de classification
+- [Application Web de localisation des Etablissements Sportifs](https://arifelk.shinyapps.io/accessible_handicap_app/)
+- Le code source de [l'application](https://github.com/phileas-condemine/map_accessibilite_handicap) et de [l'étude](https://github.com/phileas-condemine/accessible_handicap)
 
 ## Documentation
 
@@ -314,5 +336,106 @@ coeffs = readRDS("../data/athletisme_effet_annee_construction_OK_PRATIQUE_HM.rds
 ax <- list(title = "", showticklabels = FALSE, showgrid = FALSE)
 plot_margin(coeffs = coeffs,pattern = "^Periode_de_mise_en_service",.01)%>%layout(xaxis=ax)
 ```
+## Approche généraliste
+
+Pour continuer d'appréhender les données, on entraîne des modèles généralistes sur les variables communes aux différents types d'équipements.
+
+Faute de temps pour tout explorer, on se concentre sur l'accessibilité aux aires de jeu pour les handicapés moteurs.
+
+Pour tenir compte de toute la diversité des ES on construit le jeu d'entraînement de 100,000 observations par tirage stratifié par famille d'ES.
+
+## Objectif
+
+Fournir au bureau compétant un outil d'aide à la décision pour identifier les "mauvais élèves" ie non accessibles alors que les établissements similaires sont plutôt accessibles.
+
+Fournir au site [https://www.handiguide.sports.gouv.fr/](mailto:handiguide@sports.gouv.fr) une liste des "bons élèves" ie les établissements accessibles malgré la pauvreté de l'offre dans les établissements similaires.
+
+Pour aller plus loin, on pourrait fournir un outil de recherche d'alternative (complémentaire à https://www.handiguide.sports.gouv.fr/) qui permet de voir tous les ES par famille > type puis 1) trouver facilement les établissements accessible par handicap 2) référencer ceux qui ne le sont pas et mettre un lien direct pour leur envoyer un email demandant la mise aux normes (champ `Email de la personne ressource` + web-scrapping). [Le lien ici](https://arifelk.shinyapps.io/accessible_handicap_app/)
+
+## Feature Engineering
+
+En plus de la correction des variables multi-catégorielles et numériques mal codées, on remplace également certaines variables multi-modales par la valeur moyenne de la cible calculée sur le jeu d'entraînement pour éviter le *data leakage*.
+
+Le taux d'accessibilité moyen par famille d'établissement donne une AUC à 67.8% (sur les données de test).
+
+## Arbres de décision - AUC 71.7%
+
+Permet de continuer de découvrir des variables mal codées et d'identifier en priorité les variables les plus pertinentes. 
+
+```{r}
+load("../data/rpart_cp001.RData")
+rpart.plot::rpart.plot(model)
+
+```
+
+## 2-Step GLM modalités significatives - AUC 73.3%
+
+Modèle de référence en termes d'interprétabilité.
+
+```{r}
+load("../data/coeffs_2stepGLM.RData")
+DT::datatable(coeffs, 
+              options = list(
+                dom = 'tip',
+                language = list(url = '//cdn.datatables.net/plug-ins/1.10.11/i18n/French.json')
+              ),
+              rownames = F
+)
+```
+## Gradient boosting (GBM) - AUC 74.1% (1/2)
+
+Inteprétation de la contribution des variables pour les erreurs les plus extrêmes ([SHAPLEY](https://christophm.github.io/interpretable-ml-book/shapley.html) répartition des contributions)
+
+```{r}
+load("../data/shapley_wfn_wfp_gbm.RData")
+
+ax <- list(title = "", showticklabels = FALSE, showgrid = FALSE)
+
+{gshapley_wfn+ theme(
+  axis.text.y = element_blank(),
+  axis.ticks = element_blank())+ggtitle("SHAPLEY - Pire faux négatif (bon élève)")}%>%ggplotly()
+
+```
+## Gradient boosting (GBM) (2/2)
+
+- Pas de parking handicapé : contribution négative
+- Lieu bien équipé : sanitaires, vestiaires chauffés, salle de cours, locaux complémentaires.
+- Et pourtant non accessible aux handicapés moteurs.
+
+```{r}
+{gshapley_wfp+ theme(
+  axis.text.y = element_blank(),
+  axis.ticks = element_blank())+ggtitle("SHAPLEY - Pire faux positif (mauvais élève)")}%>%ggplotly()
+```
 
 
+## Extreme Gradient Boosting (XGBoost) - AUC 77.5% (1/2)
+
+Interprétation à l'aide d'un diagramme *waterfall* en triant les contributions en valeur absolue grâce à [xgboostExplainer](https://github.com/AppliedDataSciencePartners/xgboostExplainer)
+
+
+```{r}
+load("../data/waterfall_wfn_wfp_xgb.RData")
+xgbexp_wfn %>% ggplotly()
+
+```
+
+## Extreme Gradient Boosting (XGBoost) (2/2)
+
+
+```{r}
+xgbexp_wfp %>% ggplotly()
+
+```
+## Un outil pour trouver les établissements accessibles
+
+[L'outil](https://arifelk.shinyapps.io/accessible_handicap_app/)
+
+- Identifier les établissements accessibles par catégorie
+- Identifier ceux qui ne sont pas accessibles et les contacter (adresse email dans le popup)
+- Pour améliorer : 
+  - intégrer le score pour qualifier les bons/mauvais élèves. API plumber ou variable prédiction.
+  - ajouter des données externes
+  - meilleure UX pour le choix famille > type d'établissement
+  - alternative à la recherche par département : rayon de XX km autour d'un point placé sur la carte
+  - intégrer d'autres handicap

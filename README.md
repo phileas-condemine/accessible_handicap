@@ -6,6 +6,10 @@
 
 https://data.opendatasoft.com/explore/dataset/data-es%40equipements-sgsocialgouv/export%20/?flg=fr
 
+## Références
+
+De nombreuses réutilisations des données existent déjà sur [data.gouv](https://www.data.gouv.fr/fr/datasets/recensement-des-equipements-sportifs-espaces-et-sites-de-pratiques/#resource-community-1b49fb73-97a4-4ab5-b1bc-eb169661b4c9) mais quasi-aucune ne s'intéresse à la problématique de l'accessibilité.
+
 ## Temps passé sur le projet
 
 04/06 : 15 minutes pour lire l'énoncé, créer le projet R et lancer le téléchargement des données

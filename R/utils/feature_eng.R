@@ -64,8 +64,10 @@ inplace_recode_features = function(handicap){
   fix_to_numeric(handicap,"Débit horaire maximal")
   fix_to_numeric(handicap,"Hauteur de l'aire d'évolution")
   fix_to_numeric(handicap,"Largeur de l'aire d'évolution")
+  fix_to_numeric(handicap,"SAE: surface totale de la structure")
   
   handicap[,`Période de mise en service`:=gsub(" ","",`Période de mise en service`)]#on a à la fois 1945-1964 & 1945 - 1964
+  handicap[,`Période de l'homologation préfectorale`:=gsub(" ","",`Période de l'homologation préfectorale`)]#on a à la fois 1945-1964 & 1945 - 1964
   
   
   invisible(handicap)

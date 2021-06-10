@@ -47,13 +47,19 @@ test <- fix_names_encoding(test)
 
 
 ##### HANDICAP MOTEUR #####
+# AUCU famille ou type ES
+AUC2(y_true = test[!is.na(OK_PRATIQUE_HM)]$OK_PRATIQUE_HM*1,
+     y_pred = test[!is.na(OK_PRATIQUE_HM)]$famille_avg_access_hm)#67.8%
 
+AUC2(y_true = test[!is.na(OK_PRATIQUE_HM)]$OK_PRATIQUE_HM*1,
+     y_pred = test[!is.na(OK_PRATIQUE_HM)]$type_avg_access_hm)#66.7%
 ##### TREE ##### 
 model <- rpart(OK_PRATIQUE_HM~.,data=train[,-c("OK_PRATIQUE_HS"),with=F],
                control = rpart.control(cp = 0.001))
-g <- visTree(model)
+# g <- visTree(model)#https://github.com/datastorm-open/visNetwork/issues/181
+g <- rpart.plot::rpart.plot(model)
 g 
-save(g,file = "data/rpart_cp001.RData")
+save(model,file = "data/rpart_cp001.RData")
 test$pred = predict(model,test)
 AUC2(y_true = test[!is.na(OK_PRATIQUE_HM)]$OK_PRATIQUE_HM*1,
      y_pred = test[!is.na(OK_PRATIQUE_HM)]$pred)
@@ -108,13 +114,21 @@ testX = data.table(testX)
 model = two_step_glm(trainX,"OK_PRATIQUE_HM",output = "model")
 
 
+
+
 testX$pred = predict(model,testX)
 AUC2(y_true = testX$OK_PRATIQUE_HM*1,
      y_pred = testX$pred)
 # AUC 73.4%
 coeffs = two_step_glm(trainX,"OK_PRATIQUE_HM",output = "coeffs")
-coeffs[order(Estimate,decreasing = T)]
-
+coeffs = coeffs[order(Estimate,decreasing = T)]
+coeffs[,Estimate:=round(Estimate,2)]
+coeffs[,`Std. Error`:=round(`Std. Error`,3)]
+coeffs[,`t value`:=round(`t value`)]
+coeffs[,`Pr(>|t|)`:=as.character(round(`Pr(>|t|)`,0.0001))]
+coeffs[`Pr(>|t|)`==0,`Pr(>|t|)`:="<0.0001"]
+setnames(coeffs,"var","Variable + modalité")
+save(coeffs,file="data/coeffs_2stepGLM.RData")
 
 ##### GBM 
 library(gbm)

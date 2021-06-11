@@ -420,8 +420,10 @@ Params :
 - max-depth : 6
 - nb_trees : 1500
 
+
 On pourrait 
 
+- réduire la taille du modèle modèle (beaucoup trop gros : profondeur et nombre d'arbres)
 - améliorer avec une grid-search (BayesianSearch ? l'entraînement est quand même lent !)
 - ajouter des contraintes de monotonie, en particulier sur les variables de target-encoding
 - créer de nouvelles features, à commencer par un target encoding plus complet (quand il y a trop peu d'observations...)

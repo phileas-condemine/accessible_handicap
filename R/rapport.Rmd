@@ -409,9 +409,30 @@ ax <- list(title = "", showticklabels = FALSE, showgrid = FALSE)
 ```
 
 
-## Extreme Gradient Boosting (XGBoost) - AUC 77.5% (1/2)
+## Extreme Gradient Boosting (XGBoost) - AUC 80.0% 
+
+Params : 
+
+- sample rows : 70%
+- sample cols : 50%
+- eta : 0.1
+- min_child_weight : 10 (>10 obs par feuille)
+- max-depth : 6
+- nb_trees : 1500
+
+On pourrait 
+
+- améliorer avec une grid-search (BayesianSearch ? l'entraînement est quand même lent !)
+- ajouter des contraintes de monotonie, en particulier sur les variables de target-encoding
+- créer de nouvelles features, à commencer par un target encoding plus complet (quand il y a trop peu d'observations...)
+- recoder les variables numériques en déciles (factor) pour intepréter plus facilement les waterfalls.
+
+
+
+## Extreme Gradient Boosting (XGBoost) - Waterfall (1/2)
 
 Interprétation à l'aide d'un diagramme *waterfall* en triant les contributions en valeur absolue grâce à [xgboostExplainer](https://github.com/AppliedDataSciencePartners/xgboostExplainer)
+
 
 
 ```{r}
@@ -420,7 +441,7 @@ xgbexp_wfn %>% ggplotly()
 
 ```
 
-## Extreme Gradient Boosting (XGBoost) (2/2)
+## Extreme Gradient Boosting (XGBoost) - Waterfall (2/2)
 
 
 ```{r}
@@ -438,4 +459,4 @@ xgbexp_wfp %>% ggplotly()
   - ajouter des données externes
   - meilleure UX pour le choix famille > type d'établissement
   - alternative à la recherche par département : rayon de XX km autour d'un point placé sur la carte
-  - intégrer d'autres handicap
+  - intégrer d'autres handicaps
